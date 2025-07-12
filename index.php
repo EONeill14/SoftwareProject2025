@@ -10,7 +10,11 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Project/PHP/PHPProject.php to edi
     </head>
     <body>
         <?php
-        echo "Hello world!!!"
+        echo "Hello world!!!";
+        ?>
+        <br>
+        <?php
+        echo "Test Commit";
         ?>
     </body>
 </html>
