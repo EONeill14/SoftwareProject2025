@@ -11,8 +11,7 @@
     <body>
 
         <?php
-        // The navbar would be included here in a non-MVC structure
-        // require_once('navbar.php'); 
+        require_once('navbar.php');
         ?>
 
         <!-- Main Contact Form Section -->
