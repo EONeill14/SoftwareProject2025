@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-      <title>ABC Global Consulting Inc.</title>
+      <title>The Golf Shop.</title>
       <link rel="stylesheet" href="<?php echo $app_path ?>style.css" />
       <link rel="stylesheet" href="<?php echo $app_path ?>css/bootstrap.css" />
       <script src="<?php echo $app_path ?>jquery-3.3.1.min.js"></script>
