@@ -17,6 +17,8 @@ set_include_path($doc_root . $app_path);
 // Get common code
 require_once('utility/tags.php');
 require_once('model/db.php');
+require_once('model/cart.php');
+
 
 
 // Function to handle database errors 

@@ -1,0 +1,27 @@
+/* --- Homepage Styles --- */
+
+/* Dark overlay for carousel images to make text more readable */
+.carousel-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Styling for the custom service boxes */
+.service-box {
+    padding: 20px;
+}
+
+/* Main headings for each section */
+.section-head {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--golf-green); /* Uses the color we defined before */
+    display: inline-block;
+}
