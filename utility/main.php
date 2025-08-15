@@ -18,6 +18,8 @@ set_include_path($doc_root . $app_path);
 require_once('utility/tags.php');
 require_once('model/db.php');
 require_once('model/cart.php');
+require_once('model/category_lib.php');
+$categories = get_categories();
 
 
 

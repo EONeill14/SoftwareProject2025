@@ -18,6 +18,15 @@
     $cart_url = $app_path . 'cart/';
     $member_account_url = $app_path . 'member/';
     $logout_url = $member_account_url . '?action=logout';
+
+    // Get categories for the search dropdown
+    if (!isset($categories)) {
+        // This check prevents errors if the file is already included
+        if (defined('PROJECT_ROOT')) {
+            require_once(PROJECT_ROOT . '/model/category_lib.php');
+            $categories = get_categories();
+        }
+    }
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -35,6 +44,29 @@
                     <a class="nav-link" href="<?php echo $contact_url; ?>">Contact</a>
                 </li>
             </ul>
+
+            <!-- UPDATED: Search form now includes a category dropdown -->
+            <form class="d-flex mx-auto" action="<?php echo $app_path . 'search.php'; ?>" method="get">
+                <div class="input-group">
+                    <select name="category_id" class="form-select" style="max-width: 150px;">
+                        <option value="0">All Categories</option>
+                        <?php if (!empty($categories)) : ?>
+                            <?php foreach ($categories as $category) : ?>
+                                <option value="<?php echo $category['categoryID']; ?>">
+                                    <?php echo htmlspecialchars($category['categoryName']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                    <!-- FIX: Removed the 'required' attribute from the search input -->
+                    <input class="form-control" type="search" name="query" placeholder="Search...">
+                    <button class="btn btn-outline-success" type="submit">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            <!-- END: Search Form -->
+
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo $cart_url; ?>">

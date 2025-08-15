@@ -292,4 +292,39 @@ function decrease_product_stock($product_id, $quantity_to_remove) {
     $statement->closeCursor();
 }
 
+function search_products($search_query, $category_id = 0) {
+    global $db;
+
+    // Start with the base query and join the categories table
+    $sql = 'SELECT p.*, c.categoryName 
+            FROM products p 
+            JOIN categories c ON p.categoryID = c.categoryID 
+            WHERE p.is_active = 1';
+
+    $params = [];
+
+    // Add the text search condition. This now checks product names,
+    // descriptions, AND category names.
+    if (!empty($search_query)) {
+        $sql .= ' AND (p.productName LIKE :query OR p.description LIKE :query OR c.categoryName LIKE :query)';
+        $params[':query'] = '%' . $search_query . '%';
+    }
+
+    // Add the category filter if the user selected one from the dropdown
+    if ($category_id > 0) {
+        $sql .= ' AND p.categoryID = :category_id';
+        $params[':category_id'] = $category_id;
+    }
+
+    try {
+        $statement = $db->prepare($sql);
+        $statement->execute($params);
+        $products = $statement->fetchAll();
+        $statement->closeCursor();
+        return $products;
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+    }
+}
+
 ?>
