@@ -1,0 +1,1 @@
+{"version":2,"defects":{"OrderLibTest::testShippingCostCalculation":8,"OrderLibTest::testCardNameConversion":8,"LoginTest::testSuccessfulMemberLogin":8},"times":{"OrderLibTest::testShippingCostCalculation":0.006,"OrderLibTest::testCardNameConversion":0.003,"LoginTest::testSuccessfulMemberLogin":0.23}}

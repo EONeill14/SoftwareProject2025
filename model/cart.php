@@ -1,104 +1,123 @@
 <?php
 
-require_once('product_lib.php');
-
-// Create an empty cart if it doesn't exist
-if (!isset($_SESSION['cart'])) {
-    $_SESSION['cart'] = array();
-}
-
-// Add an item to the cart
+/**
+ * Adds an item to the cart in the session.
+ */
 function cart_add_item($product_id, $quantity) {
-    $_SESSION['cart'][$product_id] = round($quantity, 0);
-
-    // Set last category added to cart
-    $product = get_product($product_id);
-    $_SESSION['last_category_id'] = $product['categoryID'];
-    $_SESSION['last_category_name'] = $product['categoryName'];
+    if (!isset($_SESSION['cart'])) {
+        $_SESSION['cart'] = [];
+    }
+    $_SESSION['cart'][(int) $product_id] = (int) $quantity;
 }
 
-// Update an item in the cart
+/**
+ * Updates an item's quantity in the cart.
+ */
 function cart_update_item($product_id, $quantity) {
+    $quantity = (int) $quantity;
     if (isset($_SESSION['cart'][$product_id])) {
-        $_SESSION['cart'][$product_id] = round($quantity, 0);
+        if ($quantity <= 0) {
+            cart_remove_item($product_id); // Remove if quantity is 0 or less
+        } else {
+            $_SESSION['cart'][$product_id] = $quantity;
+        }
     }
 }
 
-// Remove an item from the cart
+/**
+ * Removes an item from the cart.
+ */
 function cart_remove_item($product_id) {
     if (isset($_SESSION['cart'][$product_id])) {
         unset($_SESSION['cart'][$product_id]);
     }
 }
 
-// Get an array of items for the cart
+/**
+ * Gets the total number of all items in the cart.
+ * This function is extremely fast and does NOT access the database.
+ */
+function cart_item_count() {
+    // FIX: Safely handles an empty cart for new visitors.
+    if (empty($_SESSION['cart'])) {
+        return 0;
+    }
+    return array_sum($_SESSION['cart']);
+}
+
+/**
+ * Gets the number of unique products in the cart.
+ */
+function cart_product_count() {
+    // FIX: Safely handles an empty cart.
+    if (empty($_SESSION['cart'])) {
+        return 0;
+    }
+    return count($_SESSION['cart']);
+}
+
+/**
+ * Gets a detailed array of items for the cart, fetching all product data in a single query.
+ */
 function cart_get_items() {
-    $items = array();
-    foreach ($_SESSION['cart'] as $product_id => $quantity) {
-        // Get product data from db
-        $product = get_product($product_id);
-        $list_price = $product['listPrice'];
-        $discount_percent = $product['discountPercent'];
-        $quantity = intval($quantity);
+    if (empty($_SESSION['cart'])) {
+        return [];
+    }
 
-        // Calculate discount
-        $discount_amount = round($list_price * ($discount_percent / 100.0), 2);
-        $unit_price = $list_price - $discount_amount;
-        $line_price = round($unit_price * $quantity, 2);
+    global $db;
 
-        // Store data in items array
-        $items[$product_id]['name'] = $product['productName'];
-        $items[$product_id]['description'] = $product['description'];
-        $items[$product_id]['list_price'] = $list_price;
-        $items[$product_id]['discount_percent'] = $discount_percent;
-        $items[$product_id]['discount_amount'] = $discount_amount;
-        $items[$product_id]['unit_price'] = $unit_price;
-        $items[$product_id]['quantity'] = $quantity;
-        $items[$product_id]['line_price'] = $line_price;
+    $product_ids = array_keys($_SESSION['cart']);
+    $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+
+    $query = "SELECT * FROM products WHERE productID IN ($placeholders)";
+
+    try {
+        $statement = $db->prepare($query);
+        $statement->execute($product_ids);
+        $products = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $statement->closeCursor();
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+        return [];
+    }
+
+    $items = [];
+    foreach ($products as $product) {
+        $product_id = $product['productID'];
+        $quantity = $_SESSION['cart'][$product_id];
+
+        $discount_amount = round($product['listPrice'] * ($product['discountPercent'] / 100.0), 2);
+        $unit_price = $product['listPrice'] - $discount_amount;
+
+        $items[$product_id] = [
+            'name' => $product['productName'],
+            'list_price' => $product['listPrice'],
+            'discount_amount' => $discount_amount,
+            'quantity' => $quantity,
+            'unit_price' => $unit_price,
+            'line_price' => $unit_price * $quantity
+        ];
     }
     return $items;
 }
 
-// Get the number of products in the cart
-function cart_product_count() {
-    return count($_SESSION['cart']);
-}
-
-// Get the subtotal for the cart
+/**
+ * Gets the subtotal for the cart.
+ */
 function cart_subtotal() {
     $subtotal = 0;
-    $cart = cart_get_items();
-    foreach ($cart as $item) {
-        $subtotal += $item['unit_price'] * $item['quantity'];
+    $items = cart_get_items();
+    foreach ($items as $item) {
+        $subtotal += $item['line_price'];
     }
     return $subtotal;
 }
 
-// Set the category for the last item added to the cart
-function set_last_category($category_id, $category_name) {
-    $_SESSION['last_category_id'] = $category_id;
-    $_SESSION['last_category_name'] = $category_name;
-}
-
-// Set the product for the last item added to the cart
-function set_last_product($product_id, $product_name) {
-    $_SESSION['last_product_id'] = $product_id;
-    $_SESSION['last_product_name'] = $product_name;
-}
-
-// Remove all items from the cart
+/**
+ * Removes all items from the cart.
+ */
 function clear_cart() {
-    $_SESSION['cart'] = array();
-}
-
-// Get the number of items in the cart
-function cart_item_count() {
-    $count = 0;
-    $cart = cart_get_items();
-    foreach ($cart as $item) {
-        $count += $item['quantity'];
-    }
-    return $count;
+    $_SESSION['cart'] = [];
 }
 
 ?>

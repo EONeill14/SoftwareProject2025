@@ -22,10 +22,10 @@ function tax_amount($subtotal) {
     if ($shipping_address === false) {
         return 0; // No address, no tax.
     }
-    
+
     // Assuming all sales are within Ireland for a 23% VAT rate
     $vat_rate = 0.23;
-    
+
     return round($subtotal * $vat_rate, 2);
 }
 
@@ -35,7 +35,7 @@ function tax_amount($subtotal) {
  * @return string The name of the card.
  */
 function card_name($card_type) {
-    switch($card_type){
+    switch ($card_type) {
         case 1: return 'MasterCard';
         case 2: return 'Visa';
         case 3: return 'Discover';
@@ -215,4 +215,121 @@ function delete_order($order_id) {
         display_db_error($e->getMessage());
     }
 }
+
+function get_top_selling_products($limit = 10) {
+    global $db;
+    $query = '
+        SELECT p.productName, SUM(oi.quantity) AS total_sold
+        FROM orderitems oi
+        JOIN products p ON oi.productID = p.productID
+        GROUP BY p.productID, p.productName
+        ORDER BY total_sold DESC
+        LIMIT :limit';
+
+    try {
+        $statement = $db->prepare($query);
+        $statement->bindValue(':limit', (int) $limit, PDO::PARAM_INT);
+        $statement->execute();
+        $top_products = $statement->fetchAll();
+        $statement->closeCursor();
+        return $top_products;
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+    }
+}
+
+/**
+ * Gets a sales report, grouping total sales and order counts by date.
+ * @return array An array of daily sales data.
+ */
+function get_sales_report() {
+    global $db;
+    $query = '
+        SELECT 
+            DATE(o.orderDate) as sale_date, 
+            COUNT(o.orderID) as order_count, 
+            SUM(o.shipAmount + o.taxAmount + i.order_subtotal) as total_sales
+        FROM orders o
+        JOIN (
+            SELECT orderID, SUM((itemPrice - discountAmount) * quantity) as order_subtotal
+            FROM orderitems
+            GROUP BY orderID
+        ) i ON o.orderID = i.orderID
+        GROUP BY DATE(o.orderDate)
+        ORDER BY sale_date DESC';
+
+    try {
+        $statement = $db->prepare($query);
+        $statement->execute();
+        $report_data = $statement->fetchAll();
+        $statement->closeCursor();
+        return $report_data;
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+    }
+}
+
+/**
+ * NEW: Gets a report of total sales broken down by category.
+ * @return array An array of sales data for each category.
+ */
+function get_sales_by_category() {
+    global $db;
+    $query = '
+        SELECT 
+            c.categoryName,
+            SUM(oi.quantity) as units_sold,
+            SUM((oi.itemPrice - oi.discountAmount) * oi.quantity) as category_total
+        FROM orderitems oi
+        JOIN products p ON oi.productID = p.productID
+        JOIN categories c ON p.categoryID = c.categoryID
+        GROUP BY c.categoryID, c.categoryName
+        ORDER BY category_total DESC';
+
+    try {
+        $statement = $db->prepare($query);
+        $statement->execute();
+        $report_data = $statement->fetchAll();
+        $statement->closeCursor();
+        return $report_data;
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+    }
+}
+
+/**
+ * NEW: Gets a summary of all-time sales metrics.
+ * @return array An array containing total orders and total revenue.
+ */
+function get_sales_summary() {
+    global $db;
+    // This query is more robust as it properly joins the order items to calculate the total.
+    $query = '
+        SELECT
+            COUNT(o.orderID) as total_orders,
+            SUM(o.shipAmount + o.taxAmount + i.order_subtotal) as grand_total
+        FROM orders o
+        JOIN (
+            SELECT orderID, SUM((itemPrice - discountAmount) * quantity) as order_subtotal
+            FROM orderitems
+            GROUP BY orderID
+        ) i ON o.orderID = i.orderID';
+
+    try {
+        $statement = $db->prepare($query);
+        $statement->execute();
+        $summary = $statement->fetch();
+        $statement->closeCursor();
+
+        // If there are no orders, return a default empty state.
+        if ($summary['total_orders'] == 0) {
+            return ['total_orders' => 0, 'grand_total' => 0];
+        }
+
+        return $summary;
+    } catch (PDOException $e) {
+        display_db_error($e->getMessage());
+    }
+}
 ?>
+
